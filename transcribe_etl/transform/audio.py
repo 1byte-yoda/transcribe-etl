@@ -2,6 +2,7 @@ import os.path
 from pathlib import Path
 from typing import Union, Optional, List, Tuple
 
+import pandas as pd
 import whisper
 from loguru import logger
 from pyannote.audio import Audio, Pipeline
@@ -21,7 +22,7 @@ class AudioAnnotator(Processor):
         super().__init__(verbose=verbose)
         self._token = token
         if not self.verbose:
-            logger.disable("transform.processor.audio")
+            logger.disable("transform.audio")
 
     def execute(self, file: Union[str, Path]) -> List[TxData]:
         logger.debug("Sample only AudioAnnotator")
@@ -68,3 +69,19 @@ class AudioAnnotator(Processor):
         start = convert_duration_to_millisecond(duration=duration[0])
         end = convert_duration_to_millisecond(duration=duration[1])
         return start, end
+
+
+def annotate_multiple_audio_files(audio_files: List[Path], audio_annotator: AudioAnnotator):
+    return [tx for file in audio_files for tx in audio_annotator.execute(file=file)]
+
+
+def annotate_audio_files_from_csv(file_paths: List[Path], audio_annotator: AudioAnnotator):
+    packages = []
+    for file in file_paths:
+        df = pd.read_csv(filepath_or_buffer=file)
+        for item in df.itertuples(index=False):
+            dir_name = item.directory_name
+            audio_dir = list(Path(dir_name).glob("*.wav")) if "pin" in item._fields else [f"{dir_name}{item.file_path}"]
+            tx_data = annotate_multiple_audio_files(audio_files=audio_dir, audio_annotator=audio_annotator)
+            packages.extend(tx_data)
+    return packages
