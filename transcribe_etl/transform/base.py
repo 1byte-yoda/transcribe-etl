@@ -2,7 +2,7 @@ from abc import ABC
 from pathlib import Path
 from typing import List, Optional, Union
 
-from transcribe_etl.speech_annotator.model import TxData
+from transcribe_etl.transform.model import TxData
 
 
 class Processor(ABC):

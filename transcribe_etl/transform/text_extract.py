@@ -4,8 +4,8 @@ from typing import List, Tuple, Union, Optional
 
 from loguru import logger
 
-from transcribe_etl.speech_annotator.base import Processor
-from transcribe_etl.speech_annotator.model import TxData
+from transcribe_etl.transform.base import Processor
+from transcribe_etl.transform.model import TxData
 
 
 def combine_and_measure_segments(segments: List[dict]) -> List[dict]:
@@ -55,7 +55,7 @@ class TextExtractAnnotator(Processor):
     def __init__(self, verbose: Optional[bool] = False):
         super().__init__(verbose=verbose)
         if not self.verbose:
-            logger.disable("speech_annotator.processor.text_extract")
+            logger.disable("transform.processor.text_extract")
 
     def execute(self, file: Union[str, Path]) -> List[TxData]:
         text = self._get_text_to_process(file=file)

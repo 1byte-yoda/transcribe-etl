@@ -8,9 +8,9 @@ from pyannote.audio import Audio, Pipeline
 from pyannote.core import Segment
 from whisper import Whisper
 
-from transcribe_etl.speech_annotator.helper import split_interval, convert_duration_to_millisecond
-from transcribe_etl.speech_annotator.base import Processor
-from transcribe_etl.speech_annotator.model import TxData
+from transcribe_etl.transform.helper import split_interval, convert_duration_to_millisecond
+from transcribe_etl.transform.base import Processor
+from transcribe_etl.transform.model import TxData
 
 
 class AudioAnnotator(Processor):
@@ -21,17 +21,19 @@ class AudioAnnotator(Processor):
         super().__init__(verbose=verbose)
         self._token = token
         if not self.verbose:
-            logger.disable("speech_annotator.processor.audio")
+            logger.disable("transform.processor.audio")
 
     def execute(self, file: Union[str, Path]) -> List[TxData]:
         logger.debug("Sample only AudioAnnotator")
 
         if not os.path.exists(file):
-            raise ValueError(f"File {file} does not exists")
+            logger.error(f"File {file} does not exists")
+            return []
 
         audio = Audio(sample_rate=16000, mono=True)
         speech_model = self._prepare_whisper_speech_recognition()
         diarization = self._prepare_pyannote_diarization(file=file)
+
         annotated_audios = []
 
         for segment, _, speaker in diarization.itertracks(yield_label=True):
