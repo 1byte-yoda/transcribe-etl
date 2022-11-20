@@ -12,28 +12,6 @@ class TxData(DataClassJsonMixin):
     end: int
 
 
-# @dataclass(frozen=True)
-# class Speaker:
-#     user_id: str
-#     email: Optional[str] = None
-#     gender: Optional[str] = None
-#     native_language: Optional[str] = None
-#
-#
-# @dataclass(frozen=True)
-# class MetaData(DataClassJsonMixin):
-#     audio_file_name: str
-#     audio_duration: float
-#     speaker_id: Speaker
-#     corpus_code: Optional[str] = None
-#
-#
-# @dataclass(frozen=True)
-# class TranscriptionPackage(DataClassJsonMixin):
-#     tx_data: List[TxData]
-#     metadata: MetaData
-
-
 @dataclass(frozen=True)
 class ExtractedTranscription(DataClassJsonMixin):
     file: str
