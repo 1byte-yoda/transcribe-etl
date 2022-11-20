@@ -126,4 +126,4 @@ example.db
 # Data Folders
 data/
 stage/
-s3_bucket_folder/
+s3_bucket/
