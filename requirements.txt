@@ -1,9 +1,11 @@
 pandas==1.5.1
-torch==1.11.0
-torchvision==0.12.0
-torchaudio==0.11.0
-pyannote.audio
-git+https://github.com/openai/whisper.git
-dataclasses-json-0.5.7
+dataclasses-json==0.5.7
 loguru==0.6.0
 python-dotenv==0.21.0
+
+# If we wish to use AudioAnnotator
+# torch==1.11.0
+# torchvision==0.12.0
+# torchaudio==0.11.0
+# pyannote.audio
+# git+https://github.com/openai/whisper.git
