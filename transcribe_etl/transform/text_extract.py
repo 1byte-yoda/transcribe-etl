@@ -80,7 +80,7 @@ class SegmentProcessor:
             tx_group[s.file]["duration"] += s.end - s.start
             tx_group[s.file]["tx_data"].append(tx_data)
 
-        return [TxDataGroup(file=filepath, segments=tx_group[filepath]["tx_data"]) for filepath in tx_group]
+        return [TxDataGroup(file=filepath, tx_data=tx_group[filepath]["tx_data"]) for filepath in tx_group]
 
 
 class TextExtractAnnotator(Processor):

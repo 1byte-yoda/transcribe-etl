@@ -41,7 +41,7 @@ def load(data: List[TxDataGroup]):
         save_path = package_date / "no-pin" if pd.isna(_df.pin) else package_date / str(_df.pin)
         filename = _df.file.strip('/audio-efs/')
         tx_metadata = generate_tx_metadata(df_row=_df).to_dict()
-        load_data_to_s3_bucket(save_folder=save_path, file_name=filename.replace('.wav', '_tx.json'), data=_df.segments)
+        load_data_to_s3_bucket(save_folder=save_path, file_name=filename.replace('.wav', '_tx.json'), data=_df.tx_data)
         load_data_to_s3_bucket(save_folder=save_path, file_name=filename.replace('.wav', '_meta.json'), data=tx_metadata)
 
 

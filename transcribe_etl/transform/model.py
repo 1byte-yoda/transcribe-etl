@@ -59,4 +59,4 @@ class Segment(DataClassJsonMixin):
 @dataclass(frozen=True)
 class TxDataGroup(DataClassJsonMixin):
     file: str
-    segments: List[Segment]
+    tx_data: List[TxData]
