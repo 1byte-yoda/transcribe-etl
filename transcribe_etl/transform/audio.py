@@ -52,7 +52,7 @@ class AudioAnnotator(Processor):
     def _prepare_pyannote_diarization(self, file: Union[str, Path]) -> Pipeline:
         if self._token is None:
             raise Exception(
-                "Token not found! You need to provide the token so you can use the diarization model. "
+                "Token not found! You need to provide the token to use the diarization model. "
                 "Don't have one yet? Create a new one here: https://huggingface.co/settings/tokens"
             )
         pipeline = Pipeline.from_pretrained(
