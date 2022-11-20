@@ -25,7 +25,7 @@ def extract_data() -> StageFolder:
     return StageFolder(extract_files=extract_files)
 
 
-def transcribe(stage_folder: StageFolder) -> List[TxDataGroup]:
+def transcribe_from_txt(stage_folder: StageFolder) -> List[TxDataGroup]:
     text_annotator = TextExtractAnnotator(segment_processor=SegmentProcessor())
     tx_data_groups = []
     for file in stage_folder.extract_files:
@@ -44,5 +44,5 @@ def load(data: List[TxDataGroup]):
 
 if __name__ == '__main__':
     stg_folder: StageFolder = extract_data()
-    tx_data: List[TxDataGroup] = transcribe(stage_folder=stg_folder)
+    tx_data: List[TxDataGroup] = transcribe_from_txt(stage_folder=stg_folder)
     load(data=tx_data)
