@@ -127,3 +127,4 @@ example.db
 data/
 stage/
 s3_bucket/
+seed/
