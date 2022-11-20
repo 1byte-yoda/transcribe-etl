@@ -64,9 +64,7 @@ class SegmentProcessor:
                 previous_segment = segment
                 continue
 
-            new_segment = Segment(
-                speaker_tag=speaker_tag, text=text, start=start, end=end, file=segment.file, size=segment.size, eol=segment.eol
-            )
+            new_segment = Segment(speaker_tag=speaker_tag, text=text, start=start, end=end, file=segment.file, size=segment.size, eol=segment.eol)
             tx_data.append(new_segment)
 
         return tx_data

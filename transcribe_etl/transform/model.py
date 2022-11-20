@@ -13,6 +13,21 @@ class TxData(DataClassJsonMixin):
 
 
 @dataclass(frozen=True)
+class Speaker:
+    email: str
+    gender: str
+    native_language: str
+
+
+@dataclass(frozen=True)
+class Metadata(DataClassJsonMixin):
+    audio_file_name: str
+    audio_duration: float
+    corpus_code: str
+    speaker_id: Speaker
+
+
+@dataclass(frozen=True)
 class ExtractedTranscription(DataClassJsonMixin):
     file: str
     interval: str
