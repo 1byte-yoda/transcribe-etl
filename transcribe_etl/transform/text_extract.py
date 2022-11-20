@@ -6,7 +6,7 @@ from loguru import logger
 
 from transcribe_etl.transform.base import Processor
 from transcribe_etl.transform.helper import convert_interval_to_milliseconds
-from transcribe_etl.transform.model import TxData, ExtractedTranscription, Transcription, Segment, TranscriptionPackage, MetaData, Speaker, TxDataGroup
+from transcribe_etl.transform.model import TxData, ExtractedTranscription, Transcription, Segment, TxDataGroup
 
 
 class TextExtractAnnotator(Processor):
@@ -93,28 +93,22 @@ def _get_text(segment: Segment, previous_segment: Segment) -> Tuple[Optional[Seg
 
 
 def _get_interval_ms(segment: Segment, tx_data: List[Segment]) -> Tuple[int, int]:
-    start, end = 0, 0
     eol = segment.eol
-    if eol == "\n":
-        end = segment.end
+    is_within_same_audio = tx_data and tx_data[-1].file == segment.file
 
-        if segment.size > 1 and tx_data:
+    if is_within_same_audio:
+        if eol == "~":
+            start, end = 0, 0
+        elif eol == "\n":
             start = tx_data[-1].end
+            end = segment.end
         else:
-            start = segment.start
-
-        return start, end
-
-    elif isinstance(eol, int):
-        if tx_data and tx_data[-1].file == segment.file:
             start = tx_data[-1].end
-            end = start + eol
-        else:
-            start = segment.start
-            end = segment.end + eol
+            end = segment.start + eol
         return start, end
 
     else:
+        start, end = segment.start, segment.end
         return start, end
 
 
