@@ -21,10 +21,8 @@ _S3_BUCKET_URI = os.environ.get("S3_BUCKET_URI")
 
 def extract_data() -> StageFolder:
     data_syncer = DataSynchronizer()
-    company_xyz_files = data_syncer.sync_files_from_blob(uri=_CLOUD_URI, container_name="input_metadata", file_type="csv")
     extract_files = data_syncer.sync_files_from_blob(uri=_CLOUD_URI, container_name="extract_files", file_type="txt")
-    qa_report_file = data_syncer.sync_table_from_sql(uri=_QA_REPORT_DB_URI, container_name="qa_report", table_name="qa_report")
-    return StageFolder(company_xyz=company_xyz_files, extract_files=extract_files, qa_report=[qa_report_file])
+    return StageFolder(extract_files=extract_files)
 
 
 def transcribe(stage_folder: StageFolder) -> List[TxDataGroup]:
@@ -45,6 +43,6 @@ def load(data: List[TxDataGroup]):
 
 
 if __name__ == '__main__':
-    stg_folder = extract_data()
-    extract_files = transcribe(stage_folder=stg_folder)
-    load(data=extract_files)
+    stg_folder: StageFolder = extract_data()
+    tx_data: List[TxDataGroup] = transcribe(stage_folder=stg_folder)
+    load(data=tx_data)
