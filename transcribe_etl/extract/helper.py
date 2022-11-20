@@ -9,7 +9,7 @@ def get_transcription_metadata(qa_report_db_uri: Union[Path, str], input_metadat
     qa_report_df = get_qa_report_metadata(qa_report_db_uri=qa_report_db_uri)
     input_metadata_df = get_input_metadata(input_metadata_uri=input_metadata_uri)
     metadata_df = pd.merge(left=qa_report_df, right=input_metadata_df, on="directory_name", how="left")
-    metadata_df["pin"] = metadata_df["pin"].fillna("no-pin")
+    metadata_df["pin"] = metadata_df["pin"].fillna("unmapped-pin")
     return metadata_df
 
 
