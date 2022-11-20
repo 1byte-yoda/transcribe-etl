@@ -6,7 +6,7 @@ from loguru import logger
 
 from transcribe_etl.transform.base import Processor
 from transcribe_etl.transform.helper import convert_interval_to_milliseconds
-from transcribe_etl.transform.model import TxData
+from transcribe_etl.transform.model import TxData, ExtractedTranscription, Transcription, Segment, TranscriptionPackage, MetaData, Speaker, TxDataGroup
 
 
 class TextExtractAnnotator(Processor):
@@ -15,129 +15,138 @@ class TextExtractAnnotator(Processor):
         if not self.verbose:
             logger.disable("transform.text_extract")
 
-    def execute(self, file: Union[str, Path]) -> List[TxData]:
+    def execute(self, file: Union[str, Path]) -> List[TxDataGroup]:
         text = self._get_text_to_process(file=file)
         timed_transcriptions = self.parse_timed_transcriptions(text=text)
-        segments = self.aggregate_and_process_segments(timed_transcriptions=timed_transcriptions)
-        tx_list = _combine_and_measure_segments(segments)
-        return [TxData.from_dict(x) for x in tx_list]
-
-    @staticmethod
-    def parse_timed_transcriptions(text: str) -> List[dict]:
-        pattern = r"INTERVAL:(?P<interval>.+)\n(?P<transcription>TRANSCRIPTION: .+\n?)"
-        return [x.groupdict() for x in re.finditer(pattern, text)]
-
-    @classmethod
-    def aggregate_and_process_segments(cls, timed_transcriptions: List[dict]) -> List[dict]:
-        tx_data = []
-        for x in timed_transcriptions:
-            interval, transcription = x["interval"], x["transcription"]
-            start_ms, end_ms = convert_interval_to_milliseconds(interval=interval)
-            utterances = cls.parse_and_process_segments(text=transcription)
-            utterances = cls.insert_interval_to_segments(start_ms=start_ms, end_ms=end_ms, segments=utterances)
-            tx_data.extend(utterances)
-        return tx_data
-
-    @classmethod
-    def parse_and_convert_duration(cls, duration: str) -> Union[int, str]:
-        pattern = r"\[(\d+\.\d+)\]"
-        match = re.match(pattern, duration)
-        new_duration = int(float(match.groups()[0]) * 1000) if match else duration
-        return new_duration
-
-    @classmethod
-    def process_segments(cls, segments: List[dict]) -> List[dict]:
-        new_utterances = []
-        segment_size = len(segments)
-        for segment in segments:
-            duration = cls.parse_and_convert_duration(duration=segment["end_transcript"])
-            segment["end_transcript"], segment["size"] = duration, segment_size
-            new_utterances.append(segment)
-        return new_utterances
-
-    @classmethod
-    def parse_and_process_segments(cls, text: str) -> List[dict]:
-        pattern = r"(?P<speaker_tag>TRANSCRIPTION: (?!<\#.+>)|\<\#.+?\>)(?P<text>.+?)(?P<end_transcript>\[\d+\.\d+\]|~|\n)"
-        segments = [x.groupdict() for x in re.finditer(pattern, text)]
-        new_segments = cls.process_segments(segments=segments)
-        return new_segments
-
-    @classmethod
-    def insert_interval_to_segments(cls, start_ms: int, end_ms: int, segments: List[dict]) -> List[dict]:
-        new_segments = []
-        for segment in segments:
-            segment["start_interval_ms"] = start_ms
-            segment["end_interval_ms"] = end_ms
-            new_segments.append(segment)
-        return new_segments
+        segments = self.convert_to_segments(extracted_transcriptions=timed_transcriptions)
+        concatenated_segments = _combine_and_measure_segments(segments=segments)
+        aggregated_tx_data = aggregate_segments(segments=concatenated_segments)
+        return aggregated_tx_data
 
     @staticmethod
     def _get_text_to_process(file: Union[str, Path]) -> str:
         with open(file=file) as f:
             return f.read()
 
+    @staticmethod
+    def parse_timed_transcriptions(text: str) -> List[ExtractedTranscription]:
+        pattern = r"FILE: (?P<file>.+)\nINTERVAL:(?P<interval>.+)\n(?P<transcription>TRANSCRIPTION: .+\n)(?P<hypothesis>HYPOTHESIS: .*\n)?LABELS: (?P<labels>.*)?\nUSER: (?P<user>.*)"  # noqa
+        return [ExtractedTranscription.from_dict(x.groupdict()) for x in re.finditer(pattern, text)]
 
-def _get_speaker_tag(segment: dict, previous_segment: dict) -> str:
-    if segment["speaker_tag"] == "<#no-speech>":
+    @classmethod
+    def convert_to_segments(cls, extracted_transcriptions: List[ExtractedTranscription]) -> List[Segment]:
+        segments = []
+        for x in extracted_transcriptions:
+            transcriptions = cls.parse_and_process_transcriptions(text=x.transcription)
+            new_segments = cls.create_segments(extracted_transcription=x, segments=transcriptions)
+            segments.extend(new_segments)
+        return segments
+
+    @classmethod
+    def parse_and_process_transcriptions(cls, text: str) -> List[Transcription]:
+        pattern = r"(?P<speaker_tag>TRANSCRIPTION: (?!<\#.+>)|\<\#.+?\>)(?P<text>.+?)(?P<eol>\[\d+\.\d+\]|~|\n)"
+        transcriptions = [x.groupdict() for x in re.finditer(pattern, text)]
+        new_transcriptions = []
+        for x in transcriptions:
+            x["eol"] = cls.parse_and_convert_eol(duration=x["eol"])
+            x["size"] = len(transcriptions)
+            new_transcriptions.append(Transcription.from_dict(x))
+        return new_transcriptions
+
+    @classmethod
+    def parse_and_convert_eol(cls, duration: str) -> Union[int, str]:
+        pattern = r"\[(\d+\.\d+)\]"
+        match = re.match(pattern, duration)
+        new_duration = int(float(match.groups()[0]) * 1000) if match else duration
+        return new_duration
+
+    @classmethod
+    def create_segments(cls, extracted_transcription: ExtractedTranscription, segments: List[Transcription]) -> List[Segment]:
+        new_segments = []
+        start_ms, end_ms = convert_interval_to_milliseconds(interval=extracted_transcription.interval)
+        for s in segments:
+            s = Segment(**s.to_dict(), start=start_ms, end=end_ms, file=extracted_transcription.file.strip())
+            new_segments.append(s)
+        return new_segments
+
+
+def _get_speaker_tag(segment: Segment, previous_segment: Segment) -> str:
+    if segment.speaker_tag == "<#no-speech>":
         return ""
 
-    elif "TRANSCRIPTION" in segment["speaker_tag"] and previous_segment:
-        return previous_segment["speaker_tag"]
+    elif "TRANSCRIPTION" in segment.speaker_tag and previous_segment:
+        return previous_segment.speaker_tag
 
     else:
-        return segment["speaker_tag"]
+        return segment.speaker_tag
 
 
-def _get_text(segment: dict, previous_segment: dict) -> Tuple[dict, str]:
+def _get_text(segment: Segment, previous_segment: Segment) -> Tuple[Optional[Segment], str]:
     if previous_segment:
-        text = previous_segment["text"].strip() + " " + segment["text"].strip()
-        previous_segment = {}
+        text = previous_segment.text.strip() + " " + segment.text.strip()
+        previous_segment = None
         return previous_segment, text
 
     else:
-        text = segment["text"].strip() if segment["speaker_tag"] != "<#no-speech>" else "<#no-speech>"
+        text = segment.text.strip() if segment.speaker_tag != "<#no-speech>" else "<#no-speech>"
         return previous_segment, text
 
 
-def _get_interval_ms(eol: str, segment: dict, tx_data: List[dict]) -> Tuple[int, int]:
+def _get_interval_ms(segment: Segment, tx_data: List[Segment]) -> Tuple[int, int]:
     start, end = 0, 0
+    eol = segment.eol
     if eol == "\n":
-        end = segment["end_interval_ms"]
+        end = segment.end
 
-        if segment["size"] > 1:
-            start = tx_data[-1]["end"]
+        if segment.size > 1 and tx_data:
+            start = tx_data[-1].end
         else:
-            start = segment["start_interval_ms"]
+            start = segment.start
 
         return start, end
 
     elif isinstance(eol, int):
-        start = tx_data[-1]["end"]
-        end = segment["start_interval_ms"] + eol
+        if tx_data and tx_data[-1].file == segment.file:
+            start = tx_data[-1].end
+            end = start + eol
+        else:
+            start = segment.start
+            end = segment.end + eol
         return start, end
 
     else:
         return start, end
 
 
-def _combine_and_measure_segments(segments: List[dict]) -> List[dict]:
+def _combine_and_measure_segments(segments: List[Segment]) -> List[Segment]:
+    previous_segment = None
+
     tx_data = []
-    previous_segment = {}
-
     for segment in segments:
-        new_segment = {}
-        eol = segment["end_transcript"]
+        speaker_tag = _get_speaker_tag(segment=segment, previous_segment=previous_segment)
+        previous_segment, text = _get_text(segment=segment, previous_segment=previous_segment)
 
-        new_segment["speaker_tag"] = _get_speaker_tag(segment=segment, previous_segment=previous_segment)
-        previous_segment, new_segment["text"] = _get_text(segment=segment, previous_segment=previous_segment)
-
-        start, end = _get_interval_ms(eol=eol, segment=segment, tx_data=tx_data)
-        new_segment["start"], new_segment["end"] = start, end
+        start, end = _get_interval_ms(segment=segment, tx_data=tx_data)
+        start, end = start, end
 
         if start == end == 0:
             previous_segment = segment
             continue
 
+        new_segment = Segment(speaker_tag=speaker_tag, text=text, start=start, end=end, file=segment.file, size=segment.size, eol=segment.eol)
         tx_data.append(new_segment)
 
     return tx_data
+
+
+def aggregate_segments(segments: List[Segment]) -> List[TxDataGroup]:
+    tx_group = {}
+    for s in segments:
+        if s.file not in tx_group:
+            tx_group[s.file] = {"tx_data": [], "duration": 0}
+
+        tx_data = TxData(speaker_tag=s.speaker_tag, text=s.text, start=s.start, end=s.end)
+        tx_group[s.file]["duration"] += s.end - s.start
+        tx_group[s.file]["tx_data"].append(tx_data)
+
+    return [TxDataGroup(file=filepath, segments=tx_group[filepath]["tx_data"]) for filepath in tx_group]
