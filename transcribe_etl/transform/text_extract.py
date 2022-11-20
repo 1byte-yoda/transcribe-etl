@@ -9,9 +9,86 @@ from transcribe_etl.transform.helper import convert_interval_to_milliseconds
 from transcribe_etl.transform.model import TxData, ExtractedTranscription, Transcription, Segment, TxDataGroup
 
 
+class SegmentProcessor:
+    @staticmethod
+    def _get_speaker_tag_field(segment: Segment, previous_segment: Segment) -> str:
+        if segment.speaker_tag == "<#no-speech>":
+            return ""
+
+        elif "TRANSCRIPTION" in segment.speaker_tag and previous_segment:
+            return previous_segment.speaker_tag
+
+        else:
+            return segment.speaker_tag
+
+    @staticmethod
+    def _get_text_field(segment: Segment, previous_segment: Segment) -> Tuple[Optional[Segment], str]:
+        if previous_segment:
+            text = previous_segment.text.strip() + " " + segment.text.strip()
+            previous_segment = None
+            return previous_segment, text
+
+        else:
+            text = segment.text.strip() if segment.speaker_tag != "<#no-speech>" else "<#no-speech>"
+            return previous_segment, text
+
+    @staticmethod
+    def _get_interval_field(segment: Segment, tx_data: List[Segment]) -> Tuple[int, int]:
+        is_within_same_audio = tx_data and tx_data[-1].file == segment.file
+
+        if is_within_same_audio:
+            if segment.eol == "~":
+                start, end = 0, 0
+            elif segment.eol == "\n":
+                start = tx_data[-1].end
+                end = segment.end
+            else:
+                start = tx_data[-1].end
+                end = segment.start + segment.eol
+            return start, end
+
+        else:
+            start, end = segment.start, segment.end
+            return start, end
+
+    def combine_and_measure_segments(self, segments: List[Segment]) -> List[Segment]:
+        previous_segment = None
+
+        tx_data = []
+        for segment in segments:
+            speaker_tag = self._get_speaker_tag_field(segment=segment, previous_segment=previous_segment)
+            previous_segment, text = self._get_text_field(segment=segment, previous_segment=previous_segment)
+            start, end = self._get_interval_field(segment=segment, tx_data=tx_data)
+
+            if start == end == 0:
+                previous_segment = segment
+                continue
+
+            new_segment = Segment(
+                speaker_tag=speaker_tag, text=text, start=start, end=end, file=segment.file, size=segment.size, eol=segment.eol
+            )
+            tx_data.append(new_segment)
+
+        return tx_data
+
+    @staticmethod
+    def aggregate_segments(segments: List[Segment]) -> List[TxDataGroup]:
+        tx_group = {}
+        for s in segments:
+            if s.file not in tx_group:
+                tx_group[s.file] = {"tx_data": [], "duration": 0}
+
+            tx_data = TxData(speaker_tag=s.speaker_tag, text=s.text, start=s.start, end=s.end)
+            tx_group[s.file]["duration"] += s.end - s.start
+            tx_group[s.file]["tx_data"].append(tx_data)
+
+        return [TxDataGroup(file=filepath, segments=tx_group[filepath]["tx_data"]) for filepath in tx_group]
+
+
 class TextExtractAnnotator(Processor):
-    def __init__(self, verbose: Optional[bool] = False):
+    def __init__(self, segment_processor: SegmentProcessor, verbose: Optional[bool] = False):
         super().__init__(verbose=verbose)
+        self.segment_processor = segment_processor
         if not self.verbose:
             logger.disable("transform.text_extract")
 
@@ -19,8 +96,8 @@ class TextExtractAnnotator(Processor):
         text = self._get_text_to_process(file=file)
         timed_transcriptions = self.parse_timed_transcriptions(text=text)
         segments = self.convert_to_segments(extracted_transcriptions=timed_transcriptions)
-        concatenated_segments = _combine_and_measure_segments(segments=segments)
-        aggregated_tx_data = aggregate_segments(segments=concatenated_segments)
+        concatenated_segments = self.segment_processor.combine_and_measure_segments(segments=segments)
+        aggregated_tx_data = self.segment_processor.aggregate_segments(segments=concatenated_segments)
         return aggregated_tx_data
 
     @staticmethod
@@ -68,79 +145,3 @@ class TextExtractAnnotator(Processor):
             s = Segment(**s.to_dict(), start=start_ms, end=end_ms, file=extracted_transcription.file.strip())
             new_segments.append(s)
         return new_segments
-
-
-def _get_speaker_tag(segment: Segment, previous_segment: Segment) -> str:
-    if segment.speaker_tag == "<#no-speech>":
-        return ""
-
-    elif "TRANSCRIPTION" in segment.speaker_tag and previous_segment:
-        return previous_segment.speaker_tag
-
-    else:
-        return segment.speaker_tag
-
-
-def _get_text(segment: Segment, previous_segment: Segment) -> Tuple[Optional[Segment], str]:
-    if previous_segment:
-        text = previous_segment.text.strip() + " " + segment.text.strip()
-        previous_segment = None
-        return previous_segment, text
-
-    else:
-        text = segment.text.strip() if segment.speaker_tag != "<#no-speech>" else "<#no-speech>"
-        return previous_segment, text
-
-
-def _get_interval_ms(segment: Segment, tx_data: List[Segment]) -> Tuple[int, int]:
-    eol = segment.eol
-    is_within_same_audio = tx_data and tx_data[-1].file == segment.file
-
-    if is_within_same_audio:
-        if eol == "~":
-            start, end = 0, 0
-        elif eol == "\n":
-            start = tx_data[-1].end
-            end = segment.end
-        else:
-            start = tx_data[-1].end
-            end = segment.start + eol
-        return start, end
-
-    else:
-        start, end = segment.start, segment.end
-        return start, end
-
-
-def _combine_and_measure_segments(segments: List[Segment]) -> List[Segment]:
-    previous_segment = None
-
-    tx_data = []
-    for segment in segments:
-        speaker_tag = _get_speaker_tag(segment=segment, previous_segment=previous_segment)
-        previous_segment, text = _get_text(segment=segment, previous_segment=previous_segment)
-
-        start, end = _get_interval_ms(segment=segment, tx_data=tx_data)
-        start, end = start, end
-
-        if start == end == 0:
-            previous_segment = segment
-            continue
-
-        new_segment = Segment(speaker_tag=speaker_tag, text=text, start=start, end=end, file=segment.file, size=segment.size, eol=segment.eol)
-        tx_data.append(new_segment)
-
-    return tx_data
-
-
-def aggregate_segments(segments: List[Segment]) -> List[TxDataGroup]:
-    tx_group = {}
-    for s in segments:
-        if s.file not in tx_group:
-            tx_group[s.file] = {"tx_data": [], "duration": 0}
-
-        tx_data = TxData(speaker_tag=s.speaker_tag, text=s.text, start=s.start, end=s.end)
-        tx_group[s.file]["duration"] += s.end - s.start
-        tx_group[s.file]["tx_data"].append(tx_data)
-
-    return [TxDataGroup(file=filepath, segments=tx_group[filepath]["tx_data"]) for filepath in tx_group]
