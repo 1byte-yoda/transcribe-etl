@@ -38,6 +38,7 @@ class SegmentProcessor:
 
         if segment.eol == "~":
             return 0, 0
+
         elif is_within_same_audio:
             if segment.eol == "\n":
                 start = tx_data[-1].end
@@ -95,7 +96,7 @@ class SegmentProcessor:
         return [TxDataGroup(file=filepath, tx_data=tx_group[filepath]["tx_data"]) for filepath in tx_group]
 
 
-class TextExtractAnnotator(Processor):
+class TextExtractParser(Processor):
     def __init__(self, segment_processor: SegmentProcessor, verbose: Optional[bool] = False):
         super().__init__(verbose=verbose)
         self.segment_processor = segment_processor

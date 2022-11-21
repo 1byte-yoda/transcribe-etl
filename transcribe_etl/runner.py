@@ -14,7 +14,7 @@ from transcribe_etl.load.s3_bucket import (
     generate_tx_metadata,
 )
 from transcribe_etl.transform.model import TxDataGroup
-from transcribe_etl.transform.text_extract import TextExtractAnnotator, SegmentProcessor
+from transcribe_etl.transform.text_extract import TextExtractParser, SegmentProcessor
 
 load_dotenv()
 
@@ -29,7 +29,7 @@ def extract_data(execution_id: uuid.UUID, container_name: str, file_type: str) -
 
 
 def transcribe_from_txt(stage_folder: StageFolder) -> List[TxDataGroup]:
-    text_annotator = TextExtractAnnotator(segment_processor=SegmentProcessor())
+    text_annotator = TextExtractParser(segment_processor=SegmentProcessor())
     tx_data_groups = []
     for file in stage_folder.extract_files:
         tx_data_groups.extend(text_annotator.execute(file=file))
