@@ -13,7 +13,8 @@ from transcribe_etl.transform.model import TxDataGroup, TxData
 def test_load_data_will_store_both_metadata_and_tx_json_into_s3_bucket(tmp_path):
     tx_data = [
         TxDataGroup(
-            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_solo2-17-A-1.wav", tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)]
+            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_solo2-17-A-1.wav",
+            tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)],
         )
     ]
     tx_data_folder = tmp_path / "s3_bucket_test" / "2022-06-05" / "P998123"
@@ -35,7 +36,8 @@ def test_load_data_will_store_both_metadata_and_tx_json_into_s3_bucket(tmp_path)
 def test_load_data_will_generate_tx_json_from_tx_data_groups(tmp_path):
     tx_data = [
         TxDataGroup(
-            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_solo2-17-A-1.wav", tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)]
+            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_solo2-17-A-1.wav",
+            tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)],
         )
     ]
 
@@ -55,7 +57,8 @@ def test_load_data_will_generate_tx_json_from_tx_data_groups(tmp_path):
 def test_load_data_will_generate_metadata_from_sql_database_and_input_csv_file(tmp_path):
     tx_data = [
         TxDataGroup(
-            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_solo2-17-A-1.wav", tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)]
+            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_solo2-17-A-1.wav",
+            tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)],
         )
     ]
 
@@ -80,7 +83,8 @@ def test_load_data_will_generate_metadata_from_sql_database_and_input_csv_file(t
 def test_load_data_will_store_all_json_into_no_pin_folder_if_pin_not_found_in_metadata_storage(tmp_path):
     tx_data = [
         TxDataGroup(
-            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_TEST_NOT_IN_DB.wav", tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)]
+            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_TEST_NOT_IN_DB.wav",
+            tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)],
         )
     ]
 
@@ -103,7 +107,8 @@ def test_load_data_will_store_all_json_into_no_pin_folder_if_pin_not_found_in_me
 def test_load_data_will_use_the_audio_filename_to_store_it_into_json(tmp_path):
     tx_data = [
         TxDataGroup(
-            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_solo2-17-A-1.wav", tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)]
+            file="/audio-efs/Test_04803_MUL_MUL_0002_20220605-192230_0038_solo2-17-A-1.wav",
+            tx_data=[TxData(speaker_tag="<#spk_2>", text="hello, how are you", start=45, end=5045)],
         )
     ]
 

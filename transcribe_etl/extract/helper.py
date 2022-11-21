@@ -20,5 +20,8 @@ def get_input_metadata(input_metadata_uri: Union[Path, str]) -> pd.DataFrame:
 
 def get_qa_report_metadata(qa_report_db_uri: Union[Path, str]) -> pd.DataFrame:
     con = sqlite3.connect(qa_report_db_uri)
-    df = pd.read_sql(f"SELECT directory_name, corpus_code, file_path, audio_duration, email, user_id, gender, native_language FROM qa_report", con=con)
+    df = pd.read_sql(
+        "SELECT directory_name, corpus_code, file_path, audio_duration, email, user_id, gender, native_language FROM qa_report",
+        con=con,
+    )
     return df
