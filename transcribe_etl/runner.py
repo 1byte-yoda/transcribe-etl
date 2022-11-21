@@ -8,11 +8,7 @@ from dotenv import load_dotenv
 
 from transcribe_etl.extract.datasynchronizer import DataSynchronizer
 from transcribe_etl.extract.model import StageFolder
-from transcribe_etl.load.s3_bucket import (
-    load_data_to_s3_bucket,
-    lookup_transcript_metadata,
-    generate_tx_metadata,
-)
+from transcribe_etl.load.s3_bucket import load_data_to_s3_bucket, lookup_transcript_metadata, generate_tx_metadata
 from transcribe_etl.transform.model import TxDataGroup
 from transcribe_etl.transform.text_extract import TextExtractParser, SegmentProcessor
 

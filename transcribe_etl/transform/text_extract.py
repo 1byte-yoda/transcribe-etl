@@ -58,7 +58,7 @@ class SegmentProcessor:
 
     def combine_and_measure_segments(self, segments: List[Segment]) -> List[Segment]:
         previous_segment = None
-
+        logger.info("Combining segments using tilde, and measuring the duration for each segments")
         tx_data = []
         for segment in segments:
             speaker_tag = self._get_speaker_tag_field(segment=segment, previous_segment=previous_segment)
@@ -69,21 +69,15 @@ class SegmentProcessor:
                 previous_segment = segment
                 continue
 
-            new_segment = Segment(
-                speaker_tag=speaker_tag,
-                text=text,
-                start=start,
-                end=end,
-                file=segment.file,
-                size=segment.size,
-                eol=segment.eol,
-            )
+            new_segment = Segment(speaker_tag=speaker_tag, text=text, start=start, end=end, file=segment.file, size=segment.size, eol=segment.eol,)
+            logger.debug(f"Parsed: {new_segment}")
             tx_data.append(new_segment)
-
+        logger.info(f"Finished combining {len(tx_data)} segments and measuring transcription duration")
         return tx_data
 
     @staticmethod
     def aggregate_segments(segments: List[Segment]) -> List[TxDataGroup]:
+        logger.info("Aggregating Segments based on filename.")
         tx_group = {}
         for s in segments:
             if s.file not in tx_group:
@@ -92,7 +86,7 @@ class SegmentProcessor:
             tx_data = TxData(speaker_tag=s.speaker_tag, text=s.text, start=s.start, end=s.end)
             tx_group[s.file]["duration"] += s.end - s.start
             tx_group[s.file]["tx_data"].append(tx_data)
-
+            logger.debug(f"Aggregated Segment: {tx_data}")
         return [TxDataGroup(file=filepath, tx_data=tx_group[filepath]["tx_data"]) for filepath in tx_group]
 
 
@@ -104,6 +98,7 @@ class TextExtractParser(Processor):
             logger.disable("transform.text_extract")
 
     def execute(self, file: Union[str, Path]) -> List[TxDataGroup]:
+        logger.info(f"Parsing transcriptions from {file}.")
         text = self._get_text_to_process(file=file)
         timed_transcriptions = self.parse_timed_transcriptions(text=text)
         segments = self.convert_to_segments(extracted_transcriptions=timed_transcriptions)
@@ -119,15 +114,19 @@ class TextExtractParser(Processor):
     @staticmethod
     def parse_timed_transcriptions(text: str) -> List[ExtractedTranscription]:
         pattern = r"FILE:\s?(?P<file>.+)\nINTERVAL:\s?(?P<interval>.+)\n(?P<transcription>TRANSCRIPTION:\s?.+\n)(?P<hypothesis>HYPOTHESIS:\s?.*\n)?LABELS:\s?(?P<labels>.*)?\nUSER:\s?(?P<user>.*)"  # noqa
-        return [ExtractedTranscription.from_dict(x.groupdict()) for x in re.finditer(pattern, text)]
+        extracted_transcriptions = [ExtractedTranscription.from_dict(x.groupdict()) for x in re.finditer(pattern, text)]
+        logger.debug(f"Extracted {len(extracted_transcriptions)} transcriptions.")
+        return extracted_transcriptions
 
     @classmethod
     def convert_to_segments(cls, extracted_transcriptions: List[ExtractedTranscription]) -> List[Segment]:
+        logger.info("Parsing TX Fields from the Extracted Transcriptions.")
         segments = []
         for x in extracted_transcriptions:
             transcriptions = cls.parse_and_process_transcriptions(text=x.transcription)
             new_segments = cls.create_segments(extracted_transcription=x, segments=transcriptions)
             segments.extend(new_segments)
+        logger.debug(f"Parsing {len(segments)} segments finished.")
         return segments
 
     @classmethod
@@ -138,7 +137,9 @@ class TextExtractParser(Processor):
         for x in transcriptions:
             x["eol"] = cls.parse_and_convert_eol(duration=x["eol"])
             x["size"] = len(transcriptions)
-            new_transcriptions.append(Transcription.from_dict(x))
+            transcription = Transcription.from_dict(x)
+            new_transcriptions.append(transcription)
+            logger.debug(f"Parsed {transcription}...")
         return new_transcriptions
 
     @classmethod
@@ -154,5 +155,6 @@ class TextExtractParser(Processor):
         start_ms, end_ms = convert_interval_to_milliseconds(interval=extracted_transcription.interval)
         for s in segments:
             s = Segment(**s.to_dict(), start=start_ms, end=end_ms, file=extracted_transcription.file.strip())
+            logger.debug(f"Segment created: {s}")
             new_segments.append(s)
         return new_segments

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 from dotenv import load_dotenv
 import pandas as pd
+from loguru import logger
 
 from transcribe_etl.extract.helper import get_transcription_metadata
 from transcribe_etl.transform.model import TxDataGroup, Metadata, Speaker
@@ -17,12 +18,14 @@ _ROOT_FOLDER = Path(__file__).parent
 
 
 def load_data_to_s3_bucket(save_folder: Path, file_name: str, data: typing.Union[List[dict], dict]):
+    logger.debug(f"Saving {data} into {save_folder}...")
     save_folder.mkdir(parents=True, exist_ok=True)
-
-    with open(f"{save_folder}/{file_name}", "w") as f:
+    save_file_path = f"{save_folder}/{file_name}"
+    with open(save_file_path, "w") as f:
         f.seek(0)
         json.dump(data, fp=f)
         f.truncate()
+    logger.success("File successfully saved!")
 
 
 def parse_package_date(filename: str) -> str:
@@ -39,10 +42,12 @@ def get_metadata_df() -> pd.DataFrame:
 
 
 def lookup_transcript_metadata(extract_files: List[TxDataGroup]) -> pd.DataFrame:
+    logger.info("Loading Metadata Lookup Table into DataFrame...")
     transcription_df = pd.DataFrame(data=extract_files)
     metadata_df = get_metadata_df()
     transcription_df["package_date"] = transcription_df["file"].apply(parse_package_date)
     transcription_lookup_df = pd.merge(left=transcription_df, right=metadata_df, left_on="file", right_on="file_path", how="left")
+    logger.debug(f"Loaded Metadata Table of Size {transcription_lookup_df.shape}...")
     return transcription_lookup_df
 
 
