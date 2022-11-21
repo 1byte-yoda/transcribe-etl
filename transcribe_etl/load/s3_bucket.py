@@ -46,10 +46,14 @@ def lookup_transcript_metadata(extract_files: List[TxDataGroup]) -> pd.DataFrame
     return transcription_lookup_df
 
 
+def to_py_none(data: typing.Union[typing.Optional[str], float, Speaker]) -> typing.Union[typing.Optional[str], float, Speaker]:
+    return None if pd.isna(data) else data
+
+
 def generate_tx_metadata(df_row: typing.Any) -> Metadata:
     return Metadata(
-        audio_file_name=df_row.file,
-        audio_duration=df_row.audio_duration,
-        corpus_code=df_row.corpus_code,
-        speaker_id=Speaker(email=df_row.email, gender=df_row.gender, native_language=df_row.native_language),
+        audio_file_name=to_py_none(df_row.file),
+        audio_duration=to_py_none(df_row.audio_duration),
+        corpus_code=to_py_none(df_row.corpus_code),
+        speaker_id=Speaker(email=to_py_none(df_row.email), gender=to_py_none(df_row.gender), native_language=to_py_none(df_row.native_language)),
     )
