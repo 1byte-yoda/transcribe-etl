@@ -28,12 +28,3 @@ class DataSynchronizer:
             shutil.copy(f, file_destination)
 
         return sync_files
-
-    def sync_table_from_sql(self, uri: str, container_name: str, table_name: str):
-        con = sqlite3.connect(uri)
-        df = pd.read_sql(f"SELECT * FROM {table_name}", con=con)
-        destination_folder = _IMAGINARY_STAGING_URI / self._package_hierarchy / container_name
-        destination_folder.mkdir(parents=True, exist_ok=True)
-        file_destination = f"{destination_folder / table_name}.csv"
-        df.to_csv(file_destination, index=False)
-        return file_destination
