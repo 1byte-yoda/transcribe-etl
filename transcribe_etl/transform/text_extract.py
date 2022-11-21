@@ -57,23 +57,28 @@ class SegmentProcessor:
             return start, end
 
     def combine_and_measure_segments(self, segments: List[Segment]) -> List[Segment]:
-        previous_segment = None
         logger.info("Combining segments using tilde, and measuring the duration for each segments")
+        previous_segment = None
         tx_data = []
         for segment in segments:
-            speaker_tag = self._get_speaker_tag_field(segment=segment, previous_segment=previous_segment)
-            previous_segment, text = self._get_text_field(segment=segment, previous_segment=previous_segment)
-            start, end = self._get_interval_field(segment=segment, tx_data=tx_data)
+            previous_segment, new_segment = self._adjust_duration_and_speaker_text_tags(previous_segment, segment, tx_data=tx_data)
 
-            if start == end == 0:
+            if new_segment.start == new_segment.end == 0:
                 previous_segment = segment
                 continue
 
-            new_segment = Segment(speaker_tag=speaker_tag, text=text, start=start, end=end, file=segment.file, size=segment.size, eol=segment.eol,)
             logger.debug(f"Parsed: {new_segment}")
             tx_data.append(new_segment)
+
         logger.info(f"Finished combining {len(tx_data)} segments and measuring transcription duration")
         return tx_data
+
+    def _adjust_duration_and_speaker_text_tags(self, previous_segment: Segment, segment: Segment, tx_data: List[Segment]) -> Tuple[Segment, Segment]:
+        speaker_tag = self._get_speaker_tag_field(segment=segment, previous_segment=previous_segment)
+        previous_segment, text = self._get_text_field(segment=segment, previous_segment=previous_segment)
+        start, end = self._get_interval_field(segment=segment, tx_data=tx_data)
+        new_segment = Segment(speaker_tag=speaker_tag, text=text, start=start, end=end, file=segment.file, size=segment.size, eol=segment.eol)
+        return previous_segment, new_segment
 
     @staticmethod
     def aggregate_segments(segments: List[Segment]) -> List[TxDataGroup]:
