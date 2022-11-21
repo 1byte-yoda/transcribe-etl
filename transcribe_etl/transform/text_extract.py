@@ -23,7 +23,7 @@ class SegmentProcessor:
 
     @staticmethod
     def _get_text_field(segment: Segment, previous_segment: Segment) -> Tuple[Optional[Segment], str]:
-        if previous_segment:
+        if previous_segment and previous_segment.eol == "~":
             text = previous_segment.text.strip() + " " + segment.text.strip()
             previous_segment = None
             return previous_segment, text
@@ -36,10 +36,10 @@ class SegmentProcessor:
     def _get_interval_field(segment: Segment, tx_data: List[Segment]) -> Tuple[int, int]:
         is_within_same_audio = tx_data and tx_data[-1].file == segment.file
 
-        if is_within_same_audio:
-            if segment.eol == "~":
-                start, end = 0, 0
-            elif segment.eol == "\n":
+        if segment.eol == "~":
+            return 0, 0
+        elif is_within_same_audio:
+            if segment.eol == "\n":
                 start = tx_data[-1].end
                 end = segment.end
             else:
@@ -48,7 +48,11 @@ class SegmentProcessor:
             return start, end
 
         else:
-            start, end = segment.start, segment.end
+            if isinstance(segment.eol, int):
+                start = segment.start
+                end = segment.start + segment.eol
+            else:
+                start, end = segment.start, segment.end
             return start, end
 
     def combine_and_measure_segments(self, segments: List[Segment]) -> List[Segment]:
@@ -105,7 +109,7 @@ class TextExtractAnnotator(Processor):
 
     @staticmethod
     def parse_timed_transcriptions(text: str) -> List[ExtractedTranscription]:
-        pattern = r"FILE: (?P<file>.+)\nINTERVAL:(?P<interval>.+)\n(?P<transcription>TRANSCRIPTION: .+\n)(?P<hypothesis>HYPOTHESIS: .*\n)?LABELS: (?P<labels>.*)?\nUSER: (?P<user>.*)"  # noqa
+        pattern = r"FILE:\s?(?P<file>.+)\nINTERVAL:\s?(?P<interval>.+)\n(?P<transcription>TRANSCRIPTION:\s?.+\n)(?P<hypothesis>HYPOTHESIS:\s?.*\n)?LABELS:\s?(?P<labels>.*)?\nUSER:\s?(?P<user>.*)"  # noqa
         return [ExtractedTranscription.from_dict(x.groupdict()) for x in re.finditer(pattern, text)]
 
     @classmethod

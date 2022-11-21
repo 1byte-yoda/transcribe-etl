@@ -14,8 +14,6 @@ from transcribe_etl.transform.model import TxDataGroup, Metadata, Speaker
 load_dotenv()
 
 _ROOT_FOLDER = Path(__file__).parent
-_CLOUD_URI = Path(os.environ.get("CLOUD_URI"))
-_QA_REPORT_DB_URI = os.environ.get("QA_REPORT_DB_URI")
 
 
 def load_data_to_s3_bucket(save_folder: Path, file_name: str, data: typing.Union[List[dict], dict]):
@@ -33,6 +31,8 @@ def parse_package_date(filename: str) -> str:
 
 
 def get_metadata_df() -> pd.DataFrame:
+    _CLOUD_URI = Path(os.environ.get("CLOUD_URI"))
+    _QA_REPORT_DB_URI = os.environ.get("QA_REPORT_DB_URI")
     input_metadata_uri = _CLOUD_URI / "input_metadata" / "input_file.csv"
     metadata_df = get_transcription_metadata(qa_report_db_uri=_QA_REPORT_DB_URI, input_metadata_uri=input_metadata_uri)
     return metadata_df
