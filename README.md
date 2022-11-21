@@ -61,6 +61,9 @@ $ pip install -r requirements.txt
 $ python3 main.py
 ```
 
+After running the script `main.py`, the `extract.txt` file shall be moved inside the `stage` folder, and then it will generate the
+tx and metadata json files inside the `s3_bucket` folder.
+
 ## Project Tree
 ```
     transcribe-etl/
@@ -70,7 +73,7 @@ $ python3 main.py
     │   ├── extract_files/                  # Contains .txt files that will be transcribed ie. extract.txt
     │   ├── input_metadata/                 # Contains .csv files that will be mapped for metadata generation ie. input_file.csv
     │   ├── qa_report.db                    # The sqlite database which contains audio transcription metadata 
-    │   ├── tests/                          # Contains test suites for pytest
+    │── tests/                              # Contains test suites for pytest
     ├── transcribe_etl/
     │   ├── extract/                        # Stores the Data Extraction Modules
     │   ├── load/                           # Stores the Data Load/Dump Modules
