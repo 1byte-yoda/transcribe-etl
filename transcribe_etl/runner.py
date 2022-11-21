@@ -8,7 +8,11 @@ from dotenv import load_dotenv
 
 from transcribe_etl.extract.datasynchronizer import DataSynchronizer
 from transcribe_etl.extract.model import StageFolder
-from transcribe_etl.load.s3_bucket import load_data_to_s3_bucket, lookup_transcript_metadata, generate_tx_metadata
+from transcribe_etl.load.s3_bucket import (
+    load_data_to_s3_bucket,
+    lookup_transcript_metadata,
+    generate_tx_metadata,
+)
 from transcribe_etl.transform.model import TxDataGroup
 from transcribe_etl.transform.text_extract import TextExtractAnnotator, SegmentProcessor
 
@@ -38,10 +42,10 @@ def load_data(data: List[TxDataGroup]):
     for _df in transcription_lookup_df.itertuples():  # type: Any
         package_date = s3_bucket_uri / Path(_df.package_date)
         save_path = package_date / "no-pin" if pd.isna(_df.pin) else package_date / str(_df.pin)
-        filename = _df.file.strip('/audio-efs/')
+        filename = _df.file.strip("/audio-efs/")
         tx_metadata = generate_tx_metadata(df_row=_df).to_dict()
-        load_data_to_s3_bucket(save_folder=save_path, file_name=filename.replace('.wav', '_tx.json'), data=_df.tx_data)
-        load_data_to_s3_bucket(save_folder=save_path, file_name=filename.replace('.wav', '_meta.json'), data=tx_metadata)
+        load_data_to_s3_bucket(save_folder=save_path, file_name=filename.replace(".wav", "_tx.json"), data=_df.tx_data)
+        load_data_to_s3_bucket(save_folder=save_path, file_name=filename.replace(".wav", "_meta.json"), data=tx_metadata)
 
 
 def data_pipeline():
