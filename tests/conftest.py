@@ -3,6 +3,11 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from loguru import logger
+
+
+def pytest_configure():
+    logger.remove()
 
 
 @pytest.fixture(scope="function", autouse=True)
