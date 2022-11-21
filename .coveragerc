@@ -1,0 +1,5 @@
+[run]
+omit = transcribe_etl/transform/audio.py
+
+[report]
+omit = transcribe_etl/transform/audio.py
