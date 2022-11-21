@@ -42,7 +42,11 @@ S3_BUCKET_URI=s3_bucket
 
 ```
 $ docker build -t transcribe_etl .
-$ docker run transcribe_etl
+$ docker run -e ./.env \
+     -v $(pwd)/s3_bucket:/usr/src/app/s3_bucket \
+     -v $(pwd)/simulated_cloud:/usr/src/app/simulated_cloud \
+     -v $(pwd)/stage:/usr/src/app/stage \
+     transcribe_etl main.py
 ```
 
 ### Using your Local Computer Running Python3
