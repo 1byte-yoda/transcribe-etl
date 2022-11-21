@@ -1,6 +1,12 @@
 # Extract Transcribe Load
 
-***
+
+
+[//]: # ([![Build Status][build-status-shield]][build-status-url])
+
+[//]: # ([![codecov][code-cov-shield]][code-cov-url])
+
+[//]: # ([![codestyle][code-style]][code-style-url])
 
 ## Description
 Implementation of Transcription Package for the Project Engineer Exam
@@ -114,3 +120,9 @@ The generated report can be found inside the `htmlcov` folder
 $ make cov_report html
 ```
 
+[build-status-shield]: https://travis-ci.com/1byte-yoda/ports-automation.svg?branch=main
+[build-status-url]: https://travis-ci.com/1byte-yoda/transcribe-etl
+[code-cov-shield]: https://codecov.io/gh/1byte-yoda/transcribe-etl
+[code-cov-url]: https://codecov.io/gh/1byte-yoda/transcribe-etl
+[code-style]: https://img.shields.io/badge/codestyle-flake8-28df99
+[code-style-url]: https://github.com/1byte-yoda/transcribe-etl
