@@ -50,10 +50,10 @@ $ docker run -e ./.env \
 ```
 
 ### Using your Local Computer Running Python3
-Just take note that this project was tested and developed using Python 3.9.1, please check if you have the right version installed.
+Just take note that this project was tested and developed using Python 3.9.2, please check if you have the right version installed.
 ```
 $ python --version
-Python 3.9.1
+Python 3.9.2
 ```
 
 ```
