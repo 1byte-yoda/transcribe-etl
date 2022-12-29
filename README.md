@@ -9,7 +9,7 @@
 [//]: # ([![codestyle][code-style]][code-style-url])
 
 ## Description
-Implementation of Transcription Package Phone Call Conversations
+Implementation of Transcription Package for Phone Call Conversations
 
 ## Cloning the repository
 ```
